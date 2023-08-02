@@ -63,11 +63,11 @@ class BuildingApiView(viewsets.ViewSet):
             return None
         
     # 4. Update
-    def update(self, request, building_id):
+    def get_object(self, request, building_id):
         '''
         Updates the todo item with given todo_id if exists
         '''
-        building_instance = self.get_object(building_id, request.user.id)
+        building_instance = Building.objects.get(pk=building_id)
         if not building_instance:
             return Response(
                 {"res": "Object with building id does not exists"}, 
