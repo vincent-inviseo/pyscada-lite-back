@@ -1,7 +1,7 @@
-from django.shortcuts import get_object_or_404
-from rest_framework import permissions, status, viewsets
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from urllib import response
+from rest_framework import permissions, viewsets
+from rest_framework.decorators import api_view
+from rest_framework.decorators import action
 
 from buildings.models import Building, Page, Chart, Device, Variable, AlertVariable
 from buildings.serializers import (
@@ -15,7 +15,7 @@ from buildings.serializers import (
 
 from .permissions import IsAuthorOrReadOnly
 
-class BuildingViewSet(viewsets.ReadOnlyModelViewSet):
+class BuildingViewSet(viewsets.ModelViewSet):
     """
     List and Retrieve post categories
     """
@@ -23,6 +23,25 @@ class BuildingViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Building.objects.all()
     serializer_class = BuildingReadSerializer
     permission_classes = (permissions.AllowAny,)
+    
+    def get_queryset(self):
+        res = super().get_queryset()
+        page_id = self.kwargs.get("page_id")
+        return res.filter(page__id=page_id)
+
+    def get_serializer_class(self):
+        return BuildingReadSerializer
+
+    def get_permissions(self):
+        if self.action in ("create",):
+            self.permission_classes = (permissions.IsAuthenticated,)
+        elif self.action in ("update", "partial_update", "destroy"):
+            self.permission_classes = (IsAuthorOrReadOnly,)
+        else:
+            self.permission_classes = (permissions.AllowAny,)
+
+        return super().get_permissions()
+    
 
 class PageViewSet(viewsets.ModelViewSet):
 
@@ -64,12 +83,24 @@ class ChartViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
 # Here, we are using the normal APIView class
-class DeviceViewApi(APIView):
+class DeviceViewSet(viewsets.ModelViewSet):
 
-    permission_classes = (permissions.IsAuthenticated,)
+    queryset = Device.objects.all()
+    
+    def get_queryset(self):
+        res = super().get_queryset()
+        variable_id = self.kwargs.get("variable_id")
+        return res.filter(variable__id=variable_id)
 
-    def get(self, request, pk):
-        user = request.user
-        device = get_object_or_404(Device, pk=pk)
+    def get_serializer_class(self):
+        return DeviceReadSerializer
 
-        return Response(status=status.HTTP_200_OK)
+    def get_permissions(self):
+        if self.action in ("create",):
+            self.permission_classes = (permissions.IsAuthenticated,)
+        elif self.action in ("update", "partial_update", "destroy"):
+            self.permission_classes = (IsAuthorOrReadOnly,)
+        else:
+            self.permission_classes = (permissions.AllowAny,)
+
+        return super().get_permissions()
