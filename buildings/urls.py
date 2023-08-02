@@ -1,16 +1,11 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import BuildingViewSet, ChartViewSet, DeviceViewSet, PageViewSet
+from .views import BuildingApiView
 
-app_name = "posts"
-
-router = DefaultRouter()
-router.register(r"buildings", BuildingViewSet)
-router.register(r"pages", PageViewSet)
-router.register(r"charts", ChartViewSet)
-router.register(r"devices", DeviceViewSet)
 
 urlpatterns = [
-    path("", include(router.urls))
+    path("buildings/", BuildingApiView.as_view({'get': 'list'})),
+    path("buildings/create", BuildingApiView.as_view({'post': 'create'})),
+    path("buildings/<int:building_id>/get", BuildingApiView.as_view({'get': 'retrieve'})),
 ]
