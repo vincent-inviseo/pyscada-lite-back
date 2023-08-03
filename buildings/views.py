@@ -52,9 +52,14 @@ class BuildingApiView(viewsets.ViewSet):
 
 
     def retrieve(self, request, building_id):
+        building = Building.objects.get(pk=building_id)
+        if not building:
+            return Response({
+                'res': "Building not exists"
+            })
         try:
             serializer = BuildingReadSerializer(
-                    Building.objects.get(id=building_id)
+                    building
                     )
             return Response(
                 serializer.data
@@ -80,11 +85,11 @@ class BuildingApiView(viewsets.ViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
-    def destroy(self, request, building_id, *args, **kwargs):
+    def destroy(self, request, building_id):
         '''
         Deletes the todo item with given todo_id if exists
         '''
-        building_instance = self.get_object(building_id, request.user.id)
+        building_instance = Building.objects.get(pk=building_id)
         if not building_instance:
             return Response(
                 {"res": "Object with building id does not exists"}, 
