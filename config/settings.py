@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "buildings",
     'users',
+    'webService',
     "corsheaders",
 ]
 

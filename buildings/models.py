@@ -70,9 +70,17 @@ WIDTH_CHOICES = (
 )
 
 PROTOCOLE_CHOICE = (
-    (0, "Web Service"),
-    (1, "Modbus"),
-    (2, "BacNet")
+    ("Web Service", "Web Service"),
+    ("Modbus", "Modbus"),
+    ("BacNet", "BacNet")
+)
+
+CHARTS_TYPE = (
+    (0, 'BARS'),
+    (1, 'LINES'),
+    (2, 'DONUT'),
+    (3, 'GAUGE'),
+    (4, 'LOAD PROFIL')
 )
 
 POOLING_INTERVALE = (
@@ -108,9 +116,9 @@ class Building(models.Model):
     name = models.CharField("Building name", max_length=100)
     address = models.CharField("Building address", max_length=200)
     createdAt = models.DateTimeField()
-    updatedAt = models.DateTimeField()
+    updatedAt = models.DateTimeField(blank=True)
     position = models.IntegerField("Position in the list")
-    pages = models.ForeignKey('Page', null=True, on_delete=models.CASCADE)
+    pages = models.ForeignKey('Page', null=True, on_delete=models.CASCADE, blank=True)
     visible = models.BooleanField(default=True)
 
     class Meta:
@@ -124,9 +132,9 @@ class Page(models.Model):
     name = models.CharField("Page name", max_length=100)
     link_name = models.CharField("Link name", max_length=50)
     createdAt = models.DateTimeField()
-    updatedAt = models.DateTimeField()
+    updatedAt = models.DateTimeField(blank=True)
     position = models.IntegerField("Position in the list")
-    charts = models.ForeignKey('Chart', null=True, on_delete=models.CASCADE)
+    charts = models.ForeignKey('Chart', null=True, on_delete=models.CASCADE, blank=True)
     visible = models.BooleanField(default=True)
 
     class Meta:
@@ -139,14 +147,15 @@ class Page(models.Model):
 class Chart(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField("Chart name", max_length=100)
-    legende_axe_x = models.CharField("Legende X", default="axe X", max_length=100)
-    legende_axe_y = models.CharField("Legende X", default="axe Y", max_length=100)
+    legende_axe_x = models.CharField("Legende X", default="axe X", max_length=100, blank=True)
+    legende_axe_y = models.CharField("Legende X", default="axe Y", max_length=100, blank=True)
     createdAt = models.DateTimeField()
-    updatedAt = models.DateField()
-    widht =   models.CharField(choices=WIDTH_CHOICES, default="100%", max_length=10)
+    updatedAt = models.DateField(blank=True)
+    widht =   models.CharField(choices=WIDTH_CHOICES, default="100%", max_length=10, blank=True)
     position = models.IntegerField("Position in the list")
     visible = models.BooleanField(default=True)
-    devices = models.ForeignKey('Device', on_delete=models.DO_NOTHING)
+    variables = models.ManyToManyField('Variable')
+    chartType = models.IntegerField(verbose_name="Chart Type", choices=CHARTS_TYPE, null=True, default=0)
     
     class Meta:
         ordering = ['position']
@@ -156,21 +165,22 @@ class Chart(models.Model):
     
 class Device(models.Model):
     id = models.AutoField(primary_key=True)
-    name = models.CharField("Device name", max_length=70)
-    description = models.CharField("Device description", max_length=300, null=True)
+    short_name = models.CharField("Device name", max_length=70)
+    description = models.CharField("Device description", max_length=300, null=True, blank=True)
     active = models.BooleanField(default=True)
     byte_order = models.CharField(
          max_length=15, default="1-0-3-2", choices=BYTE_ORDER
     )
     polling_interval = models.FloatField(
         default=POOLING_INTERVALE[3][0], choices=POOLING_INTERVALE
-    )   
-    protocol = models.ForeignKey('DeviceProtocol', null=True, on_delete=models.DO_NOTHING)
+    )  
+    address = models.CharField(verbose_name="Address of this device", max_length=200, null=True) 
+    protocol = models.ForeignKey('DeviceProtocol', null=True, on_delete=models.DO_NOTHING, blank=True)
 
     def __str__(self):
         # display protocol for the JS filter for inline variables (hmi.static.pyscada.js.admin)
         if self.protocol is not None:
-            return self.protocol.protocol + "-" + self.name
+            return self.protocol.protocol + "-" + self.short_name
         else:
             return "generic-" + self.short_name
 
@@ -181,14 +191,14 @@ class Device(models.Model):
             return device_class(self)
         except:
             logger.error(
-                f"{self.name}({getpid()}), unhandled exception", exc_info=True
+                f"{self.short_name}({getpid()}), unhandled exception", exc_info=True
             )
             return None
 
 class DeviceProtocol(models.Model):
     id = models.AutoField(primary_key=True)
-    protocol = models.CharField(max_length=400, choices=PROTOCOLE_CHOICE)
-    description = models.TextField(default="", verbose_name="Description", null=True)
+    protocol = models.CharField(max_length=20, verbose_name="Protocol", choices=PROTOCOLE_CHOICE)
+    description = models.TextField(default="", verbose_name="Description", null=True, blank=True)
 
     def __str__(self):
         return self.protocol
@@ -197,14 +207,14 @@ class DeviceProtocol(models.Model):
 class Variable(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.SlugField(max_length=200, verbose_name="variable name", unique=True)
-    description = models.TextField(default="", verbose_name="Description", null=True)
-    device = models.ForeignKey('Device', null=True, on_delete=models.CASCADE)
+    description = models.TextField(default="", verbose_name="Description", null=True, blank=True)
+    device = models.ForeignKey('Device', null=True, on_delete=models.CASCADE, blank=True)
     active = models.BooleanField(default=True)
     unit = models.ForeignKey('Unit', on_delete=models.SET(1))
-    alerts = models.ForeignKey('AlertVariable', on_delete=models.CASCADE)
+    alerts = models.ForeignKey('AlertVariable', on_delete=models.CASCADE, blank=True, null=True)
     writeable = models.BooleanField(default=False)
     createdAt = models.DateTimeField()
-    updatedAt = models.DateTimeField()
+    updatedAt = models.DateTimeField(blank=True)
     scaling = models.ForeignKey(
         'Scaling', null=True, blank=True, on_delete=models.SET_NULL
     )
@@ -225,6 +235,7 @@ class Variable(models.Model):
     value_max = models.FloatField(null=True, blank=True)
     min_type = models.CharField(max_length=4, default="lte", choices=MIN_TYPE_CHOICE)
     max_type = models.CharField(max_length=4, default="gte", choices=MAX_TYPE_CHOICE)
+    value = models.FloatField(editable=False, null=True) 
 
     def hmi_name(self):
         if self.short_name and self.short_name != "-" and self.short_name != "":
@@ -243,6 +254,9 @@ class Variable(models.Model):
                 c_id = c_id - c
                 c = c % c_id
             return Color.objects.get(id=c_id).color_code()
+    
+    def __str__(self):
+        return self.name
 
 class Unit(models.Model):
     id = models.AutoField(primary_key=True)
@@ -317,9 +331,9 @@ class Scaling(models.Model):
 class AlertVariable(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField("Alert Variable Name", max_length=100)
-    description = models.CharField("Description of alert", max_length=200)
+    description = models.CharField("Description of alert", max_length=200, null=True, blank=True)
     createdAt = models.DateTimeField()
-    updatedAt = models.DateTimeField()
+    updatedAt = models.DateTimeField(blank=True)
     
     class Meta:
         ordering = ['-createdAt']
