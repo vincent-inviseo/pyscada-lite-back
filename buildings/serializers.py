@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Building, Page, Chart, Device, Variable, AlertVariable
+from .models import Building, Page, Chart, Device, Variable, AlertVariable, VariableValues
 
 class BuildingReadSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,6 +25,11 @@ class DeviceReadSerializer(serializers.ModelSerializer):
 class VariableReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Variable
+        fields = "__all__"
+        
+class VariableValueReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VariableValues
         fields = "__all__"
 
 class AlertVariableReadSerializer(serializers.ModelSerializer):

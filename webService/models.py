@@ -1,7 +1,5 @@
 from django.db import models
 
-from buildings.models import Device
-
 
 method_choice = (
     (0, "Path"),
@@ -19,7 +17,6 @@ class WebService(models.Model):
     method = models.IntegerField(verbose_name="Method to get data", choices=method_choice, default=0)
     contentType = models.IntegerField(verbose_name="Content of device response", choices=content_type_choice, default=0)
     active = models.BooleanField(default=True)
-    device = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True)
     path = models.CharField(verbose_name="Path of variable name response", max_length=80, null=True, blank=True)
     
     def __str__(self):

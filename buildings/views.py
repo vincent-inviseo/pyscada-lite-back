@@ -1,18 +1,22 @@
 from datetime import datetime, timedelta
 from sched import scheduler
+import requests
 from rest_framework import permissions, viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import viewsets
 
-from buildings.models import Building, Page, Chart, Device
+from buildings.models import Building, Page, Chart, Device, Variable, VariableValues
 from buildings.serializers import (
     BuildingReadSerializer,
     PageReadSerializer,
     ChartReadSerializer,
-    DeviceReadSerializer
+    DeviceReadSerializer,
+    VariableReadSerializer,
+    VariableValueReadSerializer
 )
 from webService.models import WebService
+from webService.serializers import WebServiceSerializer
 
 from .permissions import IsAuthorOrReadOnly
 
@@ -248,17 +252,21 @@ class FunctionsDatas(viewsets.ViewSet):
         serializer = ChartReadSerializer(
             chart
         )
-        datas = {
-            
-        }
+        datas = {}
         variables = chart.variables
         if len(variables.all()) >= 1:
             for variable in variables.all():
+                variable_value_serialized = {}
+                for variable_value in VariableValues.objects.filter(variable=variable):
+                    serializer = VariableValueReadSerializer(
+                        variable_value
+                    )
+                    variable_value_serialized.update(serializer.data)
+                    
                 json_to_add = {
-                    'datetime': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
                     'name': variable.name,
                     'id': variable.id,
-                    'value': variable.value
+                    'values': variable_value_serialized
                 }
                 datas.update(json_to_add)
             
@@ -267,12 +275,38 @@ class FunctionsDatas(viewsets.ViewSet):
     
     def get_data_background_all_devices(self, request):
         '''Get all devices variables values and saves it'''
-        devices = []
+        variables = {}
         for device in Device.objects.all():
-            serializer = DeviceReadSerializer(
-                device
-            )
-            devices.append(serializer.data)
-        
-        return Response(devices)
+            '''If protocole is webservice'''
+            #if device.protocol == 1:
+            response_data = get_json_from_url(device.address)
+            for variable in device.variables.all():
+                webService = WebService.objects.filter(variable=variable).first()
+                if webService:
+                    serializer = VariableReadSerializer(
+                        variable
+                    )
+                    variables.update(serializer.data)
+                    save_variable_value(variable.id, response_data[webService.path])  
+        return Response(variables)  
+
+
+def save_variable_value(variable_id, value):
+    value_saved = VariableValues.objects.create(recordedAt=datetime.now(), value=value)
+    Variable.objects.update(id=variable_id ,values=value_saved)
+    
+
+    
+def get_json_from_url(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Lève une exception si la réponse contient un code d'erreur HTTP
+        json_data = response.json()  # Convertit la réponse en objet JSON
+        return json_data
+    except requests.exceptions.RequestException as e:
+        print("Une erreur s'est produite lors de la requête :", e)
+        return None
+    except ValueError as e:
+            print("Erreur de décodage JSON :", e)
+    return None
     

@@ -5,6 +5,7 @@ from venv import logger
 from django.db import models
 
 from config import settings
+from webService.models import WebService
 
 '''
 CHOICES
@@ -167,6 +168,7 @@ class Device(models.Model):
     id = models.AutoField(primary_key=True)
     short_name = models.CharField("Device name", max_length=70)
     description = models.CharField("Device description", max_length=300, null=True, blank=True)
+    variables = models.ManyToManyField('Variable', blank=True)
     active = models.BooleanField(default=True)
     byte_order = models.CharField(
          max_length=15, default="1-0-3-2", choices=BYTE_ORDER
@@ -208,13 +210,13 @@ class Variable(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.SlugField(max_length=200, verbose_name="variable name", unique=True)
     description = models.TextField(default="", verbose_name="Description", null=True, blank=True)
-    device = models.ForeignKey('Device', null=True, on_delete=models.CASCADE, blank=True)
     active = models.BooleanField(default=True)
     unit = models.ForeignKey('Unit', on_delete=models.SET(1))
     alerts = models.ForeignKey('AlertVariable', on_delete=models.CASCADE, blank=True, null=True)
     writeable = models.BooleanField(default=False)
     createdAt = models.DateTimeField()
     updatedAt = models.DateTimeField(blank=True)
+    webService = models.ForeignKey(WebService, on_delete=models.CASCADE, null=True)
     scaling = models.ForeignKey(
         'Scaling', null=True, blank=True, on_delete=models.SET_NULL
     )
@@ -235,7 +237,7 @@ class Variable(models.Model):
     value_max = models.FloatField(null=True, blank=True)
     min_type = models.CharField(max_length=4, default="lte", choices=MIN_TYPE_CHOICE)
     max_type = models.CharField(max_length=4, default="gte", choices=MAX_TYPE_CHOICE)
-    value = models.FloatField(editable=False, null=True) 
+    values = models.OneToOneField('VariableValues', on_delete=models.CASCADE, null=True, blank=True, editable=False)
 
     def hmi_name(self):
         if self.short_name and self.short_name != "-" and self.short_name != "":
@@ -257,6 +259,13 @@ class Variable(models.Model):
     
     def __str__(self):
         return self.name
+
+
+class VariableValues(models.Model):
+    id = models.AutoField(primary_key=True)
+    recordedAt = models.DateTimeField(editable=False, auto_now_add=True)
+    value = models.CharField(editable=False, max_length=200, null=True, blank=True)    
+
 
 class Unit(models.Model):
     id = models.AutoField(primary_key=True)
