@@ -278,20 +278,21 @@ class FunctionsDatas(viewsets.ViewSet):
             
         return Response({'chart': serializer.data, 'datas': datas })
     
-    def get_ids_visible_chart(self, request):
+    def get_ids_isVisible_charts(self, request):
         '''Get the id of all visible charts'''
-        charts = Chart.objects.filter(visible=True).only('id')
-        json_charts = {'visible_charts_ids': []}
+        is_visible = request.GET.get('is_visible')
+        charts = Chart.objects.filter(visible=is_visible).only('id')
+        json_charts = {'charts_ids': []}
         if len(charts.all()) >= 1:
             for chart in charts.all():
                 serializer = ChartReadSerializer(
                     chart
                 )
-                json_charts['visible_charts_ids'].append(
+                json_charts['charts_ids'].append(
                     chart.id
                 )
 
-        return Response({'visible_charts': json_charts})
+        return Response({'charts': json_charts})
         
     
     def get_data_background_all_devices(self, request):

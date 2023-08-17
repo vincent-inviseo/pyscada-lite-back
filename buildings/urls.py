@@ -12,6 +12,6 @@ urlpatterns = [
     path("buildings/<int:building_id>/update", BuildingApiView.as_view({'put': 'get_object'})),
     path("buildings/<int:building_id>/delete", BuildingApiView.as_view({'delete': 'destroy'})),
     path("datas", FunctionsDatas.as_view({'get': 'get_data'})),
-    path("visible_charts", FunctionsDatas.as_view({'get': 'get_ids_visible_chart'})),
+    path("visible_charts", FunctionsDatas.as_view({'get': 'get_ids_isVisible_charts'})),
     path("background_data", FunctionsDatas.as_view({'get': 'get_data_background_all_devices'}))
 ]
