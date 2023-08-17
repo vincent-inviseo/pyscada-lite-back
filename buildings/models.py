@@ -119,7 +119,7 @@ class Building(models.Model):
     createdAt = models.DateTimeField()
     updatedAt = models.DateTimeField(blank=True)
     position = models.IntegerField("Position in the list")
-    pages = models.ForeignKey('Page', null=True, on_delete=models.CASCADE, blank=True)
+    # pages = models.ForeignKey('Page', null=True, on_delete=models.CASCADE, blank=True)
     visible = models.BooleanField(default=True)
 
     class Meta:
@@ -137,6 +137,9 @@ class Page(models.Model):
     position = models.IntegerField("Position in the list")
     charts = models.ForeignKey('Chart', null=True, on_delete=models.CASCADE, blank=True)
     visible = models.BooleanField(default=True)
+    building = models.ForeignKey(
+        'Building', null=True, on_delete=models.CASCADE, blank=True
+    )
 
     class Meta:
         ordering = ['position']
@@ -265,7 +268,7 @@ class VariableValues(models.Model):
     recordedAt = models.DateTimeField(editable=False, auto_now_add=True)
     value = models.CharField(editable=False, max_length=200, null=True, blank=True)
     variable = models.ForeignKey(
-        'Variable', null=True, blank=True, on_delete=models.SET_NULL
+        'Variable', null=True, blank=True, on_delete=models.CASCADE
     )    
 
 
