@@ -252,26 +252,47 @@ class FunctionsDatas(viewsets.ViewSet):
         serializer = ChartReadSerializer(
             chart
         )
-        datas = {}
+        datas = {'variables': []}
         variables = chart.variables
         if len(variables.all()) >= 1:
             for variable in variables.all():
                 variable_value_serialized = {}
+                values = {'value': []}
                 for variable_value in VariableValues.objects.filter(variable=variable):
-                    serializer = VariableValueReadSerializer(
+                    serializer_value = VariableValueReadSerializer(
                         variable_value
                     )
-                    variable_value_serialized.update(serializer.data)
-                    
-                json_to_add = {
+
+                    values['value'].append({
+                        'id': serializer_value.data['id'],
+                        'recordedAt': serializer_value.data['recordedAt'],
+                        'value': serializer_value.data['value']
+                    })
+
+                datas['variables'].append({
                     'name': variable.name,
                     'id': variable.id,
-                    'values': variable_value_serialized
-                }
-                datas.update(json_to_add)
+                    'values': values
+                })
             
             
         return Response({'chart': serializer.data, 'datas': datas })
+    
+    def get_ids_visible_chart(self, request):
+        '''Get the id of all visible charts'''
+        charts = Chart.objects.filter(visible=True).only('id')
+        json_charts = {'visible_charts_ids': []}
+        if len(charts.all()) >= 1:
+            for chart in charts.all():
+                serializer = ChartReadSerializer(
+                    chart
+                )
+                json_charts['visible_charts_ids'].append(
+                    chart.id
+                )
+
+        return Response({'visible_charts': json_charts})
+        
     
     def get_data_background_all_devices(self, request):
         '''Get all devices variables values and saves it'''
@@ -288,8 +309,7 @@ class FunctionsDatas(viewsets.ViewSet):
                     )
                     variables.update(serializer.data)
                     save_variable_value(variable.id, response_data[webService.path])  
-        return Response(variables)  
-
+        return Response(variables)
 
 def save_variable_value(variable_id, value):
     value_saved = VariableValues.objects.create(recordedAt=datetime.now(), value=value)

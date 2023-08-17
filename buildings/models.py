@@ -151,8 +151,8 @@ class Chart(models.Model):
     legende_axe_x = models.CharField("Legende X", default="axe X", max_length=100, blank=True)
     legende_axe_y = models.CharField("Legende X", default="axe Y", max_length=100, blank=True)
     createdAt = models.DateTimeField()
-    updatedAt = models.DateField(blank=True)
-    widht =   models.CharField(choices=WIDTH_CHOICES, default="100%", max_length=10, blank=True)
+    updatedAt = models.DateTimeField(blank=True)
+    width =   models.CharField(choices=WIDTH_CHOICES, default="100%", max_length=10, blank=True)
     position = models.IntegerField("Position in the list")
     visible = models.BooleanField(default=True)
     variables = models.ManyToManyField('Variable')
@@ -237,7 +237,6 @@ class Variable(models.Model):
     value_max = models.FloatField(null=True, blank=True)
     min_type = models.CharField(max_length=4, default="lte", choices=MIN_TYPE_CHOICE)
     max_type = models.CharField(max_length=4, default="gte", choices=MAX_TYPE_CHOICE)
-    values = models.OneToOneField('VariableValues', on_delete=models.CASCADE, null=True, blank=True, editable=False)
 
     def hmi_name(self):
         if self.short_name and self.short_name != "-" and self.short_name != "":
@@ -264,7 +263,10 @@ class Variable(models.Model):
 class VariableValues(models.Model):
     id = models.AutoField(primary_key=True)
     recordedAt = models.DateTimeField(editable=False, auto_now_add=True)
-    value = models.CharField(editable=False, max_length=200, null=True, blank=True)    
+    value = models.CharField(editable=False, max_length=200, null=True, blank=True)
+    variable = models.ForeignKey(
+        'Variable', null=True, blank=True, on_delete=models.SET_NULL
+    )    
 
 
 class Unit(models.Model):
