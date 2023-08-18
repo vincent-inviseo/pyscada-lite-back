@@ -119,7 +119,6 @@ class Building(models.Model):
     createdAt = models.DateTimeField()
     updatedAt = models.DateTimeField()
     position = models.IntegerField("Position in the list")
-    # pages = models.ForeignKey('Page', null=True, on_delete=models.CASCADE, blank=True)
     visible = models.BooleanField(default=True)
 
     class Meta:
@@ -135,8 +134,6 @@ class Page(models.Model):
     createdAt = models.DateTimeField()
     updatedAt = models.DateTimeField()
     position = models.IntegerField("Position in the list")
-    # charts = models.ForeignKey('Chart', null=True, on_delete=models.CASCADE, blank=True)
-    # charts = models.ManyToManyField('Chart', null=True)
     visible = models.BooleanField(default=True)
     building = models.ForeignKey(
         'Building', null=True, on_delete=models.CASCADE
