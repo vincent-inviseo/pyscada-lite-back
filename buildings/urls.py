@@ -7,11 +7,13 @@ from .views import BuildingApiView, FunctionsDatas, PageApiView
 urlpatterns = [
     path("buildings/", BuildingApiView.as_view({'get': 'list'})),
     path("pages/", PageApiView.as_view({'get': 'list'})),
+    path("pages/create", PageApiView.as_view({'post': 'create'})),
+    path("pages", PageApiView.as_view({'get': 'get_pages_by_building_id'})),
     path("buildings/create", BuildingApiView.as_view({'post': 'create'})),
     path("buildings/<int:building_id>/get", BuildingApiView.as_view({'get': 'retrieve'})),
     path("buildings/<int:building_id>/update", BuildingApiView.as_view({'put': 'get_object'})),
     path("buildings/<int:building_id>/delete", BuildingApiView.as_view({'delete': 'destroy'})),
     path("datas", FunctionsDatas.as_view({'get': 'get_data'})),
-    path("visible_charts", FunctionsDatas.as_view({'get': 'get_ids_isVisible_charts'})),
+    path("charts", FunctionsDatas.as_view({'get': 'get_ids_charts_is_visible_page_id'})),
     path("background_data", FunctionsDatas.as_view({'get': 'get_data_background_all_devices'}))
 ]

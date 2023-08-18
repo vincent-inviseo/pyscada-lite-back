@@ -117,7 +117,7 @@ class Building(models.Model):
     name = models.CharField("Building name", max_length=100)
     address = models.CharField("Building address", max_length=200)
     createdAt = models.DateTimeField()
-    updatedAt = models.DateTimeField(blank=True)
+    updatedAt = models.DateTimeField()
     position = models.IntegerField("Position in the list")
     # pages = models.ForeignKey('Page', null=True, on_delete=models.CASCADE, blank=True)
     visible = models.BooleanField(default=True)
@@ -133,12 +133,13 @@ class Page(models.Model):
     name = models.CharField("Page name", max_length=100)
     link_name = models.CharField("Link name", max_length=50)
     createdAt = models.DateTimeField()
-    updatedAt = models.DateTimeField(blank=True)
+    updatedAt = models.DateTimeField()
     position = models.IntegerField("Position in the list")
-    charts = models.ForeignKey('Chart', null=True, on_delete=models.CASCADE, blank=True)
+    # charts = models.ForeignKey('Chart', null=True, on_delete=models.CASCADE, blank=True)
+    # charts = models.ManyToManyField('Chart', null=True)
     visible = models.BooleanField(default=True)
     building = models.ForeignKey(
-        'Building', null=True, on_delete=models.CASCADE, blank=True
+        'Building', null=True, on_delete=models.CASCADE
     )
 
     class Meta:
@@ -160,6 +161,7 @@ class Chart(models.Model):
     visible = models.BooleanField(default=True)
     variables = models.ManyToManyField('Variable')
     chartType = models.IntegerField(verbose_name="Chart Type", choices=CHARTS_TYPE, null=True, default=0)
+    pages = models.ManyToManyField('Page')
     
     class Meta:
         ordering = ['position']
@@ -268,7 +270,7 @@ class VariableValues(models.Model):
     recordedAt = models.DateTimeField(editable=False, auto_now_add=True)
     value = models.CharField(editable=False, max_length=200, null=True, blank=True)
     variable = models.ForeignKey(
-        'Variable', null=True, blank=True, on_delete=models.CASCADE
+        'Variable', null=True, on_delete=models.CASCADE
     )    
 
 
