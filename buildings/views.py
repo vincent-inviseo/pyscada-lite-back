@@ -41,14 +41,6 @@ class BuildingApiView(viewsets.ViewSet):
         serializer = BuildingReadSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            data = request.data
-            Building.objects.create(
-                name=data['name'],
-                address=data['address'],
-                createdAt=data['createdAt'],
-                updatedAt=data['updatedAt'],
-                position=data['position']
-            )
             
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -127,14 +119,6 @@ class PageApiView(viewsets.ViewSet):
         serializer = PageReadSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            data = request.data
-            Page.objects.create(
-                name=data['name'],
-                address=data['address'],
-                createdAt=data['createdAt'],
-                updatedAt=data['updatedAt'],
-                position=data['position']
-            )
             
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -190,6 +174,21 @@ class PageApiView(viewsets.ViewSet):
             {"res": "Object deleted!"},
             status=status.HTTP_200_OK
         )
+
+    def get_pages_by_building_id(self, request):
+        requested_building_id = request.GET.get('building_id')
+        pages = Page.objects.filter(building_id=requested_building_id)
+        json_pages = {'pages': []}
+        if len(pages.all()) >= 1:
+            for page in pages.all():
+                serializer = PageReadSerializer(
+                    page
+                )
+                json_pages['pages'].append(
+                    serializer.data
+                )
+
+        return Response(json_pages)
 
 class ChartViewSet(viewsets.ModelViewSet):
 
@@ -252,26 +251,46 @@ class FunctionsDatas(viewsets.ViewSet):
         serializer = ChartReadSerializer(
             chart
         )
-        datas = {}
+        datas = {'variables': []}
         variables = chart.variables
         if len(variables.all()) >= 1:
             for variable in variables.all():
                 variable_value_serialized = {}
+                values = {'value': []}
                 for variable_value in VariableValues.objects.filter(variable=variable):
-                    serializer = VariableValueReadSerializer(
+                    serializer_value = VariableValueReadSerializer(
                         variable_value
                     )
-                    variable_value_serialized.update(serializer.data)
-                    
-                json_to_add = {
+
+                    values['value'].append({
+                        'id': serializer_value.data['id'],
+                        'recordedAt': serializer_value.data['recordedAt'],
+                        'value': serializer_value.data['value']
+                    })
+
+                datas['variables'].append({
                     'name': variable.name,
                     'id': variable.id,
-                    'values': variable_value_serialized
-                }
-                datas.update(json_to_add)
+                    'values': values
+                })
             
             
         return Response({'chart': serializer.data, 'datas': datas })
+    
+    def get_ids_charts_is_visible_page_id(self, request):
+        '''Get the id of all visible charts'''
+        is_visible = request.GET.get('is_visible')
+        page_id = request.GET.get('page_id')
+        charts = Chart.objects.filter(visible=is_visible).filter(pages=page_id).only('id')
+        json_charts = {'charts_ids': []}
+        if len(charts.all()) >= 1:
+            for chart in charts.all():
+                json_charts['charts_ids'].append(
+                    chart.id
+                )
+
+        return Response(json_charts)
+        
     
     def get_data_background_all_devices(self, request):
         '''Get all devices variables values and saves it'''
@@ -288,8 +307,7 @@ class FunctionsDatas(viewsets.ViewSet):
                     )
                     variables.update(serializer.data)
                     save_variable_value(variable.id, response_data[webService.path])  
-        return Response(variables)  
-
+        return Response(variables)
 
 def save_variable_value(variable_id, value):
     value_saved = VariableValues.objects.create(recordedAt=datetime.now(), value=value)
