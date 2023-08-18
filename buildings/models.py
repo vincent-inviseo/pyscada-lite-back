@@ -3,7 +3,6 @@ from django.utils.translation import gettext_lazy as _
 from os import getpid
 from venv import logger
 from django.db import models
-
 from config import settings
 from webService.models import WebService
 
@@ -81,7 +80,8 @@ CHARTS_TYPE = (
     (1, 'LINES'),
     (2, 'DONUT'),
     (3, 'GAUGE'),
-    (4, 'LOAD PROFIL')
+    (4, 'LOAD PROFIL'),
+    (5, 'NUMBER'),
 )
 
 POOLING_INTERVALE = (

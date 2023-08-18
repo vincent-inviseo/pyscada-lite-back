@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
-from sched import scheduler
 import requests
+import time
+import schedule
 from rest_framework import permissions, viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -292,6 +293,7 @@ class FunctionsDatas(viewsets.ViewSet):
         return Response(json_charts)
         
     
+    @schedule.repeat(schedule.every(10).seconds)
     def get_data_background_all_devices(self, request):
         '''Get all devices variables values and saves it'''
         variables = {}
@@ -307,11 +309,17 @@ class FunctionsDatas(viewsets.ViewSet):
                     )
                     variables.update(serializer.data)
                     save_variable_value(variable.id, response_data[webService.path])  
-        return Response(variables)
+                    values = VariableValues.objects.filter(variable=variable)
+                    values_serialized = []
+                    for value in values:
+                        serializer = VariableValueReadSerializer(
+                            value
+                        )
+                        values_serialized.append(serializer.data)
+        return Response({ 'variable': variables, 'values': values_serialized })
 
 def save_variable_value(variable_id, value):
-    value_saved = VariableValues.objects.create(recordedAt=datetime.now(), value=value)
-    Variable.objects.update(id=variable_id ,values=value_saved)
+    VariableValues.objects.create(recordedAt=datetime.now(), value=value, variable_id=variable_id)
     
 
     
@@ -327,4 +335,3 @@ def get_json_from_url(url):
     except ValueError as e:
             print("Erreur de décodage JSON :", e)
     return None
-    
