@@ -296,28 +296,40 @@ class FunctionsDatas(viewsets.ViewSet):
     @schedule.repeat(schedule.every(10).seconds)
     def get_data_background_all_devices(self, request):
         '''Get all devices variables values and saves it'''
-        variables = {}
+        json_variables = {'variables': []}
         for device in Device.objects.all():
             '''If protocole is webservice'''
             #if device.protocol == 1:
             response_data = get_json_from_url(device.address)
             for variable in device.variables.all():
+                print(variable)
                 webService = WebService.objects.filter(variable=variable).first()
+                print(webService)
                 if webService:
                     serializer = VariableReadSerializer(
                         variable
                     )
-                    variables.update(serializer.data)
+                    json_variable = serializer.data
                     save_variable_value(variable.id, response_data[webService.path])  
                     values = VariableValues.objects.filter(variable=variable)
                     values_serialized = []
+                    json_values = []
                     for value in values:
-                        serializer = VariableValueReadSerializer(
+                        serializer_value = VariableValueReadSerializer(
                             value
                         )
-                        values_serialized.append(serializer.data)
-        return Response({ 'variable': variables, 'values': values_serialized })
-
+                        json_values.append({
+                            'id': serializer_value.data['id'],
+                            'recordedAt': serializer_value.data['recordedAt'],
+                            'value': serializer_value.data['value'],
+                            'variable': serializer_value.data['variable']
+                        })
+                    json_variables['variables'].append({
+                        'variable': json_variable,
+                        'values': json_values
+                    })
+        return Response(json_variables)
+        
 def save_variable_value(variable_id, value):
     VariableValues.objects.create(recordedAt=datetime.now(), value=value, variable_id=variable_id)
     
