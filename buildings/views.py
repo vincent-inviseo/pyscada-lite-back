@@ -293,7 +293,6 @@ class FunctionsDatas(viewsets.ViewSet):
         return Response(json_charts)
         
     
-    @schedule.repeat(schedule.every(10).seconds)
     def get_data_background_all_devices(self, request):
         '''Get all devices variables values and saves it'''
         variables = {}

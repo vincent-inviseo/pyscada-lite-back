@@ -1,0 +1,1 @@
+grep 'root python /home/pyscada/pyscada-lite manage.py get_all_devices_variables' /etc/crontab || echo '* * * * * root python /home/pyscada/pyscada-lite manage.py get_all_devices_variables' >> /etc/crontab
