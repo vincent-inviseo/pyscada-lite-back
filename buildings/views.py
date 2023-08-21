@@ -126,20 +126,20 @@ class PageApiView(viewsets.ViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-    def retrieve(self, request, building_id):
-        building = Building.objects.get(pk=building_id)
-        if not building:
+    def retrieve(self, request, page_id):
+        page = Page.objects.get(pk=page_id)
+        if not page:
             return Response({
-                'res': "Building not exists"
+                'res': "page not exists"
             })
         try:
-            serializer = BuildingReadSerializer(
-                    building
+            serializer = PageReadSerializer(
+                    page
                     )
             return Response(
                 serializer.data
             )
-        except Building.DoesNotExist:
+        except Page.DoesNotExist:
             return None
         
     # 4. Update
