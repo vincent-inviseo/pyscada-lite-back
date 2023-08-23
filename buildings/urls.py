@@ -16,5 +16,6 @@ urlpatterns = [
     path("pages/create", PageApiView.as_view({'post': 'create'})),
     path("datas", FunctionsDatas.as_view({'get': 'get_data'})),
     path("charts", FunctionsDatas.as_view({'get': 'get_ids_charts_is_visible_page_id'})),
-    path("background_data", FunctionsDatas.as_view({'get': 'get_data_background_all_devices'}))
+    path("background_data", FunctionsDatas.as_view({'get': 'get_data_background_all_devices'})),
+    path("chart_date_range", FunctionsDatas.as_view({'get': 'get_value_by_chart_date_range'}))
 ]

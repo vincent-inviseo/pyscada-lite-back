@@ -311,7 +311,6 @@ class FunctionsDatas(viewsets.ViewSet):
                     json_variable = serializer.data
                     save_variable_value(variable.id, response_data[webService.path])  
                     values = VariableValues.objects.filter(variable=variable)
-                    values_serialized = []
                     json_values = []
                     for value in values:
                         serializer_value = VariableValueReadSerializer(
@@ -328,6 +327,34 @@ class FunctionsDatas(viewsets.ViewSet):
                         'values': json_values
                     })
         return Response(json_variables)
+
+    def get_value_by_chart_date_range(selft, request):
+        dateStart = request.GET.get('date_start')
+        dateEnd = request.GET.get('date_end')
+        chart_id = request.GET.get('chart_id')
+        chart = Chart.objects.get(pk=chart_id)
+        variables = chart.variables
+        response = []
+        for variable in variables.all():
+            valuesVariable = VariableValues.objects.filter(variable=variable)
+            values = valuesVariable.filter(recordedAt__gte=dateStart, recordedAt__lte=dateEnd)
+            json_values = []
+            for value in values:
+                serializer_value = VariableValueReadSerializer(
+                    value
+                )
+                json_values.append({
+                    'id': serializer_value.data['id'],
+                    'recordedAt': serializer_value.data['recordedAt'],
+                    'value': serializer_value.data['value']
+                })
+            variable_part_response = {
+                'id': variable.id,
+                'name': variable.name,
+                'values': json_values
+            }
+            response.append(variable_part_response)
+        return Response(response)
         
 def save_variable_value(variable_id, value):
     VariableValues.objects.create(recordedAt=datetime.now(), value=value, variable_id=variable_id)
