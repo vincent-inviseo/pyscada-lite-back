@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta
+from threading import Thread
 import requests
-import time
-import schedule
 from rest_framework import permissions, viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import viewsets
-
-from buildings.models import Building, Page, Chart, Device, Variable, VariableValues
+from buildings.enums.aggregation_types import AggregationType
+from buildings.models import Building, Page, Chart, Device, Unit, VariableValues
 from buildings.serializers import (
     BuildingReadSerializer,
     PageReadSerializer,
@@ -17,9 +16,13 @@ from buildings.serializers import (
     VariableValueReadSerializer
 )
 from webService.models import WebService
-from webService.serializers import WebServiceSerializer
+from asgiref.sync import sync_to_async
 
 from .permissions import IsAuthorOrReadOnly
+'''
+globals variables
+'''
+values_aggregated = [] # values aggregated stored here
 
 class BuildingApiView(viewsets.ViewSet):
     # add permission to check if user is authenticated
@@ -244,9 +247,6 @@ class FunctionsDatas(viewsets.ViewSet):
         days = today.isoweekday() - weekday
         if days<0:
             days += 7
-        previous_date = today - timedelta(days=days)
-        date_start = request.GET.get('date_start')
-        date_end = request.GET.get('date_end')
         chart_id = request.GET.get('chart_id')
         chart = Chart.objects.get(pk=chart_id)
         serializer = ChartReadSerializer(
@@ -332,33 +332,225 @@ class FunctionsDatas(viewsets.ViewSet):
         dateStart = request.GET.get('date_start')
         dateEnd = request.GET.get('date_end')
         chart_id = request.GET.get('chart_id')
+        aggregate_type = None
+        aggregate_type = request.GET.get('aggregate_type')
+         
         chart = Chart.objects.get(pk=chart_id)
         variables = chart.variables
         response = []
+        
         for variable in variables.all():
             valuesVariable = VariableValues.objects.filter(variable=variable)
             values = valuesVariable.filter(recordedAt__gte=dateStart, recordedAt__lte=dateEnd)
             json_values = []
-            for value in values:
-                serializer_value = VariableValueReadSerializer(
-                    value
-                )
-                json_values.append({
-                    'id': serializer_value.data['id'],
-                    'recordedAt': serializer_value.data['recordedAt'],
-                    'value': serializer_value.data['value']
-                })
-            variable_part_response = {
-                'id': variable.id,
-                'name': variable.name,
-                'values': json_values
-            }
-            response.append(variable_part_response)
+            aggregate_type_list = [aggregate.value for aggregate in AggregationType]
+            if not aggregate_type == None and int(aggregate_type) in aggregate_type_list:
+                aggregate_thread = Thread(target=aggregate_values, args=(values, int(aggregate_type), dateStart))
+                aggregate_thread.start()
+                aggregate_thread.join()
+                #TODO rest for this case
+                for value in values_aggregated:
+                    serializer_value = VariableValueReadSerializer(
+                        value
+                    )
+                    json_values.append({
+                        'recordedAt': serializer_value.data['recordedAt'],
+                        'value': serializer_value.data['value']
+                    })
+                variable_part_response = {
+                    'id': variable.id,
+                    'unit': variable.unit,
+                    'name': variable.name,
+                    'values': json_values
+                }
+                response.append(variable_part_response)
+            else:
+                for value in values:
+                    serializer_value = VariableValueReadSerializer(
+                        value
+                    )
+                    json_values.append({
+                        'id': serializer_value.data['id'],
+                        'recordedAt': serializer_value.data['recordedAt'],
+                        'value': serializer_value.data['value']
+                    })
+                unit = Unit.objects.get(id=variable.unit.id)
+                variable_part_response = {
+                    'id': variable.id,
+                    'unit': unit.unit,
+                    'name': variable.name,
+                    'values': json_values
+                }
+                response.append(variable_part_response)
         return Response(response)
         
 def save_variable_value(variable_id, value):
     VariableValues.objects.create(recordedAt=datetime.now(), value=value, variable_id=variable_id)
     
+
+def aggregate_values(values, aggregate_type, dateStart):
+    '''
+    aggregate by minute
+    '''
+    if aggregate_type == 1:
+        dt = datetime.strptime(dateStart, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=None)
+        dt_next = dt + timedelta(minutes=1)
+        values_filtered = []
+        for value_filtered in values:
+            val_filtered = values.filter(recordedAt__gte=dt, recordedAt__lte=dt_next)
+            if val_filtered.count() > 0:
+                for val in val_filtered:
+                    serializer_value = VariableValueReadSerializer(
+                        val
+                    )
+                    values_filtered.append(serializer_value.data['value'])
+            mean_values = 0
+            for value in val_filtered:
+                mean_values = (sum_values + float(value.value)) / len(val_filtered)
+            
+            if val_filtered.count() > 0:
+                values_aggregated.append({
+                    'recordedAt': dt,
+                    'value': mean_values
+                })
+            dt = dt + timedelta(minutes=1)
+            dt_next = dt_next + timedelta(minutes=1)
+    '''
+    aggregate by hour
+    '''
+    if aggregate_type == 2:
+        dt = datetime.strptime(dateStart, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=None)
+        dt_next = dt + timedelta(minutes=60)
+        values_filtered = []
+        for value_filtered in values:
+            val_filtered = values.filter(recordedAt__gte=dt, recordedAt__lte=dt_next)
+            if val_filtered.count() > 0:
+                for val in val_filtered:
+                    serializer_value = VariableValueReadSerializer(
+                        val
+                    )
+                    values_filtered.append(serializer_value.data['value'])
+            sum_values = 0
+            for value in val_filtered:
+                sum_values = (sum_values + float(value.value)) / len(val_filtered)
+            
+            if val_filtered.count() > 0:
+                values_aggregated.append({
+                    'recordedAt': dt,
+                    'value': sum_values
+                })
+            dt = dt + timedelta(minutes=1)
+            dt_next = dt_next + timedelta(minutes=1)
+            
+    '''
+    aggregate by day
+    '''
+    if aggregate_type == 3:
+        dt = datetime.strptime(dateStart, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=None)
+        dt_next = dt + timedelta(minutes=1440)
+        values_filtered = []
+        for value_filtered in values:
+            val_filtered = values.filter(recordedAt__gte=dt, recordedAt__lte=dt_next)
+            if val_filtered.count() > 0:
+                for val in val_filtered:
+                    serializer_value = VariableValueReadSerializer(
+                        val
+                    )
+                    values_filtered.append(serializer_value.data['value'])
+            sum_values = 0
+            for value in val_filtered:
+                sum_values = (sum_values + float(value.value)) / len(val_filtered)
+            
+            if val_filtered.count() > 0:
+                values_aggregated.append({
+                    'recordedAt': dt,
+                    'value': sum_values
+                })
+            dt = dt + timedelta(minutes=1)
+            dt_next = dt_next + timedelta(minutes=1)
+    
+    '''
+    aggregate by week
+    '''
+    if aggregate_type == 4:
+        dt = datetime.strptime(dateStart, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=None)
+        dt_next = dt + timedelta(minutes=10080)
+        values_filtered = []
+        for value_filtered in values:
+            val_filtered = values.filter(recordedAt__gte=dt, recordedAt__lte=dt_next)
+            if val_filtered.count() > 0:
+                for val in val_filtered:
+                    serializer_value = VariableValueReadSerializer(
+                        val
+                    )
+                    values_filtered.append(serializer_value.data['value'])
+            sum_values = 0
+            for value in val_filtered:
+                sum_values = (sum_values + float(value.value)) / len(val_filtered)
+            
+            if val_filtered.count() > 0:
+                values_aggregated.append({
+                    'recordedAt': dt,
+                    'value': sum_values
+                })
+            dt = dt + timedelta(minutes=1)
+            dt_next = dt_next + timedelta(minutes=1)
+    
+    '''
+    aggregate by month
+    '''
+    if aggregate_type == 5:
+        dt = datetime.strptime(dateStart, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=None)
+        dt_next = dt + timedelta(days=30)
+        values_filtered = []
+        for value_filtered in values:
+            val_filtered = values.filter(recordedAt__gte=dt, recordedAt__lte=dt_next)
+            if val_filtered.count() > 0:
+                for val in val_filtered:
+                    serializer_value = VariableValueReadSerializer(
+                        val
+                    )
+                    values_filtered.append(serializer_value.data['value'])
+            sum_values = 0
+            for value in val_filtered:
+                sum_values = (sum_values + float(value.value)) / len(val_filtered)
+            
+            if val_filtered.count() > 0:
+                values_aggregated.append({
+                    'recordedAt': dt,
+                    'value': sum_values
+                })
+            dt = dt + timedelta(minutes=1)
+            dt_next = dt_next + timedelta(minutes=1)
+    
+    '''
+    aggregate by year
+    '''
+    if aggregate_type == 6:
+        dt = datetime.strptime(dateStart, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=None)
+        dt_next = dt + timedelta(days=365)
+        values_filtered = []
+        for value_filtered in values:
+            val_filtered = values.filter(recordedAt__gte=dt, recordedAt__lte=dt_next)
+            if val_filtered.count() > 0:
+                for val in val_filtered:
+                    serializer_value = VariableValueReadSerializer(
+                        val
+                    )
+                    values_filtered.append(serializer_value.data['value'])
+            sum_values = 0
+            for value in val_filtered:
+                sum_values = (sum_values + float(value.value)) / len(val_filtered)
+            
+            if val_filtered.count() > 0:
+                values_aggregated.append({
+                    'recordedAt': dt,
+                    'value': sum_values
+                })
+            dt = dt + timedelta(minutes=1)
+            dt_next = dt_next + timedelta(minutes=1)
+                
+    return values_aggregated
 
     
 def get_json_from_url(url):
