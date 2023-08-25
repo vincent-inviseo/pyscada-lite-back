@@ -12,6 +12,7 @@ from buildings.serializers import (
     PageReadSerializer,
     ChartReadSerializer,
     DeviceReadSerializer,
+    UnitReadSerializer,
     VariableReadSerializer,
     VariableValueReadSerializer
 )
@@ -345,21 +346,14 @@ class FunctionsDatas(viewsets.ViewSet):
             json_values = []
             aggregate_type_list = [aggregate.value for aggregate in AggregationType]
             if not aggregate_type == None and int(aggregate_type) in aggregate_type_list:
-                aggregate_thread = Thread(target=aggregate_values, args=(values, int(aggregate_type), dateStart))
-                aggregate_thread.start()
-                aggregate_thread.join()
-                #TODO rest for this case
+                values_aggregated = aggregate_values_by_date_range(values, int(aggregate_type))
                 for value in values_aggregated:
-                    serializer_value = VariableValueReadSerializer(
+                    json_values.append(
                         value
                     )
-                    json_values.append({
-                        'recordedAt': serializer_value.data['recordedAt'],
-                        'value': serializer_value.data['value']
-                    })
                 variable_part_response = {
                     'id': variable.id,
-                    'unit': variable.unit,
+                    'unit': variable.unit.unit,
                     'name': variable.name,
                     'values': json_values
                 }
@@ -374,10 +368,9 @@ class FunctionsDatas(viewsets.ViewSet):
                         'recordedAt': serializer_value.data['recordedAt'],
                         'value': serializer_value.data['value']
                     })
-                unit = Unit.objects.get(id=variable.unit.id)
                 variable_part_response = {
                     'id': variable.id,
-                    'unit': unit.unit,
+                    'unit': variable.unit.unit,
                     'name': variable.name,
                     'values': json_values
                 }
@@ -551,6 +544,203 @@ def aggregate_values(values, aggregate_type, dateStart):
             dt_next = dt_next + timedelta(minutes=1)
                 
     return values_aggregated
+
+def aggregate_values_by_date_range(values, aggregate_type):
+    result = []
+    
+    '''
+    aggregate by minute
+    '''
+    if aggregate_type == 1:
+        # Convertir la liste d'objets en un dictionnaire avec recordedAt comme clé
+        objects_dict = {obj.recordedAt: obj for obj in values}
+
+        start_date = min(objects_dict.keys())
+        end_date = max(objects_dict.keys())
+
+        current_date = start_date
+        while current_date <= end_date:
+            next_date = current_date + timedelta(minutes=1)
+
+            # Sélectionner les objets enregistrés entre current_date et next_date
+            filtered_objects = [
+                obj for timestamp, obj in objects_dict.items()
+                if current_date <= timestamp < next_date
+            ]
+
+            if filtered_objects:
+                # Calculer la moyenne des valeurs
+                avg_value = sum(float(obj.value) for obj in filtered_objects) / len(filtered_objects)
+
+                # Ajouter le résultat à la liste de résultats
+                result.append({
+                    'recordedAt': current_date,
+                    'value': avg_value
+                })
+
+            current_date = next_date
+    
+    '''
+    aggregate by hour
+    '''
+    if aggregate_type == 2:
+        # Convertir la liste d'objets en un dictionnaire avec recordedAt comme clé
+        objects_dict = {obj.recordedAt: obj for obj in values}
+
+        start_date = min(objects_dict.keys())
+        end_date = max(objects_dict.keys())
+
+        current_date = start_date
+        while current_date <= end_date:
+            next_date = current_date + timedelta(minutes=60)
+
+            # Sélectionner les objets enregistrés entre current_date et next_date
+            filtered_objects = [
+                obj for timestamp, obj in objects_dict.items()
+                if current_date <= timestamp < next_date
+            ]
+
+            if filtered_objects:
+                # Calculer la moyenne des valeurs
+                avg_value = sum(float(obj.value) for obj in filtered_objects) / len(filtered_objects)
+
+                # Ajouter le résultat à la liste de résultats
+                result.append({
+                    'recordedAt': current_date,
+                    'value': avg_value
+                })
+
+            current_date = next_date
+    
+    '''
+    aggregate by day
+    '''
+    if aggregate_type == 3:
+        # Convertir la liste d'objets en un dictionnaire avec recordedAt comme clé
+        objects_dict = {obj.recordedAt: obj for obj in values}
+
+        start_date = min(objects_dict.keys())
+        end_date = max(objects_dict.keys())
+
+        current_date = start_date
+        while current_date <= end_date:
+            next_date = current_date + timedelta(days=1)
+
+            # Sélectionner les objets enregistrés entre current_date et next_date
+            filtered_objects = [
+                obj for timestamp, obj in objects_dict.items()
+                if current_date <= timestamp < next_date
+            ]
+
+            if filtered_objects:
+                # Calculer la moyenne des valeurs
+                avg_value = sum(float(obj.value) for obj in filtered_objects) / len(filtered_objects)
+
+                # Ajouter le résultat à la liste de résultats
+                result.append({
+                    'recordedAt': current_date,
+                    'value': avg_value
+                })
+
+            current_date = next_date
+    
+    '''
+    aggregate by week
+    '''
+    if aggregate_type == 4:
+        # Convertir la liste d'objets en un dictionnaire avec recordedAt comme clé
+        objects_dict = {obj.recordedAt: obj for obj in values}
+
+        start_date = min(objects_dict.keys())
+        end_date = max(objects_dict.keys())
+
+        current_date = start_date
+        while current_date <= end_date:
+            next_date = current_date + timedelta(days=7)
+
+            # Sélectionner les objets enregistrés entre current_date et next_date
+            filtered_objects = [
+                obj for timestamp, obj in objects_dict.items()
+                if current_date <= timestamp < next_date
+            ]
+
+            if filtered_objects:
+                # Calculer la moyenne des valeurs
+                avg_value = sum(float(obj.value) for obj in filtered_objects) / len(filtered_objects)
+
+                # Ajouter le résultat à la liste de résultats
+                result.append({
+                    'recordedAt': current_date,
+                    'value': avg_value
+                })
+
+            current_date = next_date
+    
+    '''
+    aggregate by month
+    '''
+    if aggregate_type == 5:
+        # Convertir la liste d'objets en un dictionnaire avec recordedAt comme clé
+        objects_dict = {obj.recordedAt: obj for obj in values}
+
+        start_date = min(objects_dict.keys())
+        end_date = max(objects_dict.keys())
+
+        current_date = start_date
+        while current_date <= end_date:
+            next_date = current_date + timedelta(days=30)
+
+            # Sélectionner les objets enregistrés entre current_date et next_date
+            filtered_objects = [
+                obj for timestamp, obj in objects_dict.items()
+                if current_date <= timestamp < next_date
+            ]
+
+            if filtered_objects:
+                # Calculer la moyenne des valeurs
+                avg_value = sum(float(obj.value) for obj in filtered_objects) / len(filtered_objects)
+
+                # Ajouter le résultat à la liste de résultats
+                result.append({
+                    'recordedAt': current_date,
+                    'value': avg_value
+                })
+
+            current_date = next_date
+            
+    '''
+    aggregate by year
+    '''
+    if aggregate_type == 6:
+        # Convertir la liste d'objets en un dictionnaire avec recordedAt comme clé
+        objects_dict = {obj.recordedAt: obj for obj in values}
+
+        start_date = min(objects_dict.keys())
+        end_date = max(objects_dict.keys())
+
+        current_date = start_date
+        while current_date <= end_date:
+            next_date = current_date + timedelta(days=365)
+
+            # Sélectionner les objets enregistrés entre current_date et next_date
+            filtered_objects = [
+                obj for timestamp, obj in objects_dict.items()
+                if current_date <= timestamp < next_date
+            ]
+
+            if filtered_objects:
+                # Calculer la moyenne des valeurs
+                avg_value = sum(float(obj.value) for obj in filtered_objects) / len(filtered_objects)
+
+                # Ajouter le résultat à la liste de résultats
+                result.append({
+                    'recordedAt': current_date,
+                    'value': avg_value
+                })
+
+            current_date = next_date
+
+    return result
 
     
 def get_json_from_url(url):
