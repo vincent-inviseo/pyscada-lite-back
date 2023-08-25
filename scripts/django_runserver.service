@@ -8,7 +8,7 @@ Group=root
 TimeoutStartSec=0
 Restart=on-failure
 RestartSec=30s
-ExecStart=/var/www/pyscada_lite/scripts/runserver_as_root.sh 
+ExecStart=/bin/bash -c /var/www/pyscada_lite/scripts/runserver_as_root.sh 
 
 [Install]
 WantedBy=multi-user.target
