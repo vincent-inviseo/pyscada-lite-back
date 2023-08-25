@@ -1,10 +1,15 @@
 from rest_framework import serializers
 
-from .models import Building, Page, Chart, Device, Variable, AlertVariable, VariableValues
+from .models import Building, Page, Chart, Device, Unit, Variable, AlertVariable, VariableValues
 
 class BuildingReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Building
+        fields = "__all__"
+
+class UnitReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Unit
         fields = "__all__"
 
 class PageReadSerializer(serializers.ModelSerializer):

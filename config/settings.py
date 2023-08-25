@@ -13,12 +13,12 @@ from datetime import timedelta
 import os
 from pathlib import Path
 
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, PROJECT_ROOT, 'static')
 
 
 # Quick-start development settings - unsuitable for production
@@ -39,6 +39,7 @@ MEDIA_URL = '/media/'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://localhost:4200",
+    "http://localhost:80"
 ]
 
 CORS_ALLOW_METHODS = (
