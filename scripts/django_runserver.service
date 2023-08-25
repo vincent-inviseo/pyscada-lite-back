@@ -2,6 +2,7 @@
 Description=Inviseo box service django
 
 [Service]
+User=root
 ExecStart=/var/www/pyscada_lite/scripts/runserver_as_root.sh 
 
 [Install]
