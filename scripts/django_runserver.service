@@ -1,0 +1,8 @@
+[Unit]
+Description=Inviseo box service django
+
+[Service]
+ExecStart=/var/www/pyscada_lite/scripts/runserver_as_root.sh 
+
+[Install]
+WantedBy=multi.user.target
