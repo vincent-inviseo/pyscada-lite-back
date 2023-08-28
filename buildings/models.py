@@ -1,3 +1,4 @@
+import datetime
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from os import getpid
@@ -264,11 +265,18 @@ class Variable(models.Model):
 
 class VariableValues(models.Model):
     id = models.AutoField(primary_key=True)
-    recordedAt = models.DateTimeField(editable=False, auto_now_add=True)
-    value = models.CharField(editable=False, max_length=200, null=True, blank=True)
+    recordedAt = models.DateTimeField(editable=True, auto_now_add=False)
+    value = models.CharField(editable=True, max_length=200, null=True, blank=True)
     variable = models.ForeignKey(
         'Variable', null=True, on_delete=models.CASCADE
-    )    
+    )
+    
+    def __str__(self):
+        return self.variable.name + "_" + str(self.id) + "_" + self.recordedAt.strftime("%m/%d/%Y, %H:%M:%S")
+
+    def save(self, *args, **kwargs):
+        self.recordedAt = datetime.datetime.now()
+        
 
 
 class Unit(models.Model):
