@@ -176,8 +176,8 @@ REST_FRAMEWORK = {
 }
 
 JWT_AUTH = {
-    'JWT_EXPIRATION_DELTA': timedelta(days=30),  # Durée de validité du token
-    'JWT_REFRESH_EXPIRATION_DELTA': timedelta(days=60),  # Durée de validité du token de rafraîchissement
+    'JWT_EXPIRATION_DELTA': timedelta(days=2),  # Durée de validité du token
+    'JWT_REFRESH_EXPIRATION_DELTA': timedelta(days=4),  # Durée de validité du token de rafraîchissement
     'JWT_ALLOW_REFRESH': True,
     'JWT_AUTH_HEADER_PREFIX': 'Bearer',
 }

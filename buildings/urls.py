@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import BuildingApiView, FunctionsDatas, PageApiView
+from .views import BuildingApiView, FunctionsDatas, PageApiView, VariableView, VariableValuesView
 
 
 urlpatterns = [
@@ -14,6 +14,8 @@ urlpatterns = [
     path("pages", PageApiView.as_view({'get': 'get_pages_by_building_id'})),
     path("pages/<int:page_id>/get", PageApiView.as_view({'get': 'retrieve'})),
     path("pages/create", PageApiView.as_view({'post': 'create'})),
+    path("variables/create", VariableView.as_view({'post': 'create'})),
+    path("variable_values", VariableValuesView.as_view({'post': 'import_variable_value'})), 
     path("datas", FunctionsDatas.as_view({'get': 'get_data'})),
     path("charts", FunctionsDatas.as_view({'get': 'get_ids_charts_is_visible_page_id'})),
     path("background_data", FunctionsDatas.as_view({'get': 'get_data_background_all_devices'})),
