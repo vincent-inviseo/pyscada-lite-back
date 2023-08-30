@@ -21,4 +21,4 @@ tzlocal==5.0.1
 urllib3==2.0.4
 aiohttp
 aiofiles
-mysqlclient
+pymodbus
