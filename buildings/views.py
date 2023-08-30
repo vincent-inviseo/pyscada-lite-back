@@ -389,14 +389,14 @@ class VariableValuesView(viewsets.ViewSet):
             variable_id = data.get('variable_id')
             variable = Variable.objects.get(id=variable_id)
             if not variable:
-                return JsonResponse("Variable not exist")
+                return JsonResponse({"error" : "Variable not exist"})
             value = data.get('value')
             variable_value_created = {}
             if 'recordedAt' in data:
                 recordedAt = datetime.strptime(data.get('recordedAt'), "%Y-%m-%dT%H:%M:%S")
-                variable_value_created = VariableValues.objects.create(value=value, recordedAt=recordedAt, variable_id= variable.id)
+                variable_value_created = VariableValues.objects.create(value=value, variable_id=variable.id, recordedAt=recordedAt)
             else:
-                variable_value_created = VariableValues.objects.create(value=value, variable_id= variable.id)
+                variable_value_created = VariableValues.objects.create(value=value, variable_id=variable.id, recordedAt=datetime.now())
             serializer = VariableValueReadSerializer(
                 variable_value_created
             )

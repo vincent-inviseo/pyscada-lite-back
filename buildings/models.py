@@ -273,10 +273,6 @@ class VariableValues(models.Model):
     
     def __str__(self):
         return self.variable.name + "_" + str(self.id) + "_" + self.recordedAt.strftime("%m/%d/%Y, %H:%M:%S")
-
-    def save(self, *args, **kwargs):
-        if not self.recordedAt:
-            self.recordedAt = datetime.datetime.now()
         
 
 
