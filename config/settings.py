@@ -175,9 +175,13 @@ REST_FRAMEWORK = {
     ),
 }
 
-JWT_AUTH = {
-    'JWT_EXPIRATION_DELTA': timedelta(days=2),  # Durée de validité du token
-    'JWT_REFRESH_EXPIRATION_DELTA': timedelta(days=4),  # Durée de validité du token de rafraîchissement
-    'JWT_ALLOW_REFRESH': True,
-    'JWT_AUTH_HEADER_PREFIX': 'Bearer',
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=10),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=10),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": False,
+    "UPDATE_LAST_LOGIN": False,
+    "ALGORITHM": "HS256",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
 }
