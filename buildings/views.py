@@ -20,6 +20,9 @@ from buildings.serializers import (
 )
 from webService.models import WebService
 from asgiref.sync import sync_to_async
+from pymodbus.client import ModbusSerialClient as ModbusClient
+from pymodbus.client import ModbusTcpClient
+import logging
 
 from .permissions import IsAuthorOrReadOnly
 '''
@@ -302,34 +305,39 @@ class FunctionsDatas(viewsets.ViewSet):
         json_variables = {'variables': []}
         for device in Device.objects.all():
             '''If protocole is webservice'''
-            #if device.protocol == 1:
-            response_data = get_json_from_url(device.address)
-            for variable in device.variables.all():
-                print(variable)
-                webService = WebService.objects.filter(variable=variable).first()
-                print(webService)
-                if webService:
-                    serializer = VariableReadSerializer(
-                        variable
-                    )
-                    json_variable = serializer.data
-                    save_variable_value(variable.id, response_data[webService.path])  
-                    values = VariableValues.objects.filter(variable=variable)
-                    json_values = []
-                    for value in values:
-                        serializer_value = VariableValueReadSerializer(
-                            value
+            if device.protocol == "Web Service":
+                response_data = get_json_from_url(device.address)
+                for variable in device.variables.all():
+                    print(variable)
+                    webService = WebService.objects.filter(variable=variable).first()
+                    print(webService)
+                    if webService:
+                        serializer = VariableReadSerializer(
+                            variable
                         )
-                        json_values.append({
-                            'id': serializer_value.data['id'],
-                            'recordedAt': serializer_value.data['recordedAt'],
-                            'value': serializer_value.data['value'],
-                            'variable': serializer_value.data['variable']
+                        json_variable = serializer.data
+                        save_variable_value(variable.id, response_data[webService.path])  
+                        values = VariableValues.objects.filter(variable=variable)
+                        json_values = []
+                        for value in values:
+                            serializer_value = VariableValueReadSerializer(
+                                value
+                            )
+                            json_values.append({
+                                'id': serializer_value.data['id'],
+                                'recordedAt': serializer_value.data['recordedAt'],
+                                'value': serializer_value.data['value'],
+                                'variable': serializer_value.data['variable']
+                            })
+                        json_variables['variables'].append({
+                            'variable': json_variable,
+                            'values': json_values
                         })
-                    json_variables['variables'].append({
-                        'variable': json_variable,
-                        'values': json_values
-                    })
+            if device.protocol == "Modbus":
+                get_values_from_modbus(device)
+                
+            # if device.protocol == "BacNet":
+                
         return Response(json_variables)
 
     def get_value_by_chart_date_range(selft, request):
@@ -450,6 +458,66 @@ def get_json_from_url(url):
 
 def save_variable_value(variable_id, value):
     VariableValues.objects.create(recordedAt=datetime.now(), value=value, variable_id=variable_id)
+    
+
+def get_values_from_modbus(device):# Configuration du journal pour le débogage
+    values = {}
+    if device.method == "rtu":
+        logging.basicConfig()
+        log = logging.getLogger()
+        log.setLevel(logging.DEBUG)
+
+        # Créer un client Modbus
+        client = ModbusClient(method=device.method, port=device.port_or_address, baudrate=device.baudrate, parity=device.parity,
+                            stopbits=device.stopbits, bytesize=device.bytesize, timeout=device.timeout)
+        client.connect()
+
+        # Lire des données depuis un périphérique Modbus esclave
+        unit_id = device.rtu_slave_addesse  # Adresse du périphérique Modbus esclave
+        starting_address = device.starting_address  # Adresse du registre à lire
+        num_registers = device.number_register_to_read  # Nombre de registres à lire
+
+        try:
+            response = client.read_holding_registers(starting_address, num_registers, unit=unit_id)
+            values = response
+            if hasattr(response, 'registers'):
+                print(f"Valeurs lues depuis l'adresse {starting_address} du périphérique {unit_id}: {response.registers}")
+            else:
+                print("Erreur lors de la lecture des registres.")
+        except Exception as e:
+            print(f"Erreur de communication : {e}")
+
+        # Fermer la connexion
+        client.close()
+    
+    if device.method == "tcp":
+        try:
+            # Connexion au serveur Modbus TCP
+            client = ModbusTcpClient(device.port_or_address, port=device.device.server_port)
+            if not client.connect():
+                print("Impossible de se connecter au serveur Modbus TCP")
+            else:
+                # Lecture des registres
+                response = client.read_holding_registers(device.starting_address, device.number_register_to_read, unit=1)
+                values = response
+                if response.isError():
+                    print("Erreur lors de la lecture des registres")
+                else:
+                    values = response.registers
+                    print("Valeurs des registres:", values)
+        except Exception as e:
+            print("Erreur:", e)
+        finally:
+            # Déconnexion du client
+            client.close()
+    return JsonResponse(values)
+
+
+
+
+
+
+    
     
 
 def aggregate_values_by_date_range(values, aggregate_type):

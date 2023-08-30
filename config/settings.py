@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     'users',
     'webService',
     "corsheaders",
+    "modBus"
 ]
 
 MIDDLEWARE = [
